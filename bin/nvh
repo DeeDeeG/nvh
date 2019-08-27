@@ -568,7 +568,11 @@ function display_compatible_file_field {
 
 function tarball_url() {
   local version="$1"
-  echo "${g_mirror_url}/${version}/node-${version}-$(display_tarball_platform).tar.gz"
+
+  local ext="gz"
+  test -z "$NVH_USE_XZ" || local ext="xz"
+
+  echo "${g_mirror_url}/${version}/node-${version}-$(display_tarball_platform).tar.${ext}"
 }
 
 #
