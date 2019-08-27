@@ -1159,6 +1159,8 @@ function main() {
       --insecure) set_insecure ;;
       -p|--preserve) NVH_PRESERVE_NPM="true" ;;
       --no-preserve) NVH_PRESERVE_NPM="" ;;
+      -xz|--use-xz) NVH_USE_XZ="true" ;;
+      --no-use-xz) NVH_USE_XZ="" ;;
       -V|--version) echo "${VERSION}"; exit ;;
       -*) abort "unrecognised option '$1'"; exit 1 ;;
       exec) unprocessed_args=("$@"); break ;;
