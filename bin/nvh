@@ -568,7 +568,7 @@ function display_compatible_file_field {
 
 function tarball_url() {
   local version="$1"
-  echo "${g_mirror_url}/${version}/node-${version}-$(display_tarball_platform).tar.gz"
+  echo "${g_mirror_url}/${version}/node-${version}-$(display_tarball_platform).tar.xz"
 }
 
 #
@@ -671,7 +671,7 @@ function install() {
   cd "${dir}" || abort "Failed to cd to directory"
 
   install_log "fetch" "${url}"
-  do_get "${url}" | tar -zx --strip-components=1
+  do_get "${url}" | tar -Jx --strip-components=1
   [[ "${GET_OPTIONS_SHOW_PROGRESS}" = "true" ]] && erase_line
   rm -f "${dir}/nvh.lock"
 
