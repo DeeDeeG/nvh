@@ -571,7 +571,7 @@ function tarball_url() {
   local major_version=$(echo "${version#v}" | cut -d '.' -f 1)
 
   local ext="gz"
-  test -n "$NVH_USE_XZ" && test "$major_version" -gt "3" && local ext="xz"
+  test -n "$NVH_USE_XZ" && test "$major_version" -gt "3" && test -n "$(command -v xz)" && local ext="xz"
 
   echo "${g_mirror_url}/${version}/node-${version}-$(display_tarball_platform).tar.${ext}"
 }
@@ -672,7 +672,7 @@ function install() {
   is_ok "${url}" || abort "download preflight failed for '$resolved_version' (${url})"
 
   local tarflags="-zx"
-  test -n "${NVH_USE_XZ}" && test "$resolved_major_version" -gt "3" && local tarflags="-Jx"
+  test -n "${NVH_USE_XZ}" && test "$resolved_major_version" -gt "3" && test -n "$(command -v xz)" && local tarflags="-Jx"
 
   install_log "mkdir" "${dir}"
   mkdir -p "${dir}" || abort "sudo required (or change ownership, or define NVH_PREFIX)"
