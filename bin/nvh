@@ -568,9 +568,10 @@ function display_compatible_file_field {
 
 function tarball_url() {
   local version="$1"
+  local major_version=$(echo "${version#v}" | cut -d '.' -f 1)
 
   local ext="gz"
-  test -z "$NVH_USE_XZ" || local ext="xz"
+  test -n "$NVH_USE_XZ" && test "$major_version" -gt "3" && local ext="xz"
 
   echo "${g_mirror_url}/${version}/node-${version}-$(display_tarball_platform).tar.${ext}"
 }
@@ -653,6 +654,8 @@ function install() {
   [[ -n "${resolved_version}" ]] || abort "no version found for '$1'"
   update_mirror_settings_for_version "$1"
 
+  local resolved_major_version=$(echo "${resolved_version#v}" | cut -d '.' -f 1 )
+
   local dir="${CACHE_DIR}/${g_mirror_folder_name}/${resolved_version}"
 
   if [[ -d "${dir}" ]]; then
@@ -669,7 +672,7 @@ function install() {
   is_ok "${url}" || abort "download preflight failed for '$resolved_version' (${url})"
 
   local tarflags="-zx"
-  test -z "${NVH_USE_XZ}" || local tarflags="-Jx"
+  test -n "${NVH_USE_XZ}" && test "$resolved_major_version" -gt "3" && local tarflags="-Jx"
 
   install_log "mkdir" "${dir}"
   mkdir -p "${dir}" || abort "sudo required (or change ownership, or define NVH_PREFIX)"
