@@ -6,6 +6,9 @@
 # Setup.
 #
 
+echo; echo; echo "Debug: in initial setup, NVH_USE_XZ is '${NVH_USE_XZ}'"
+
+
 readonly VERSION="8.0.1-0"
 readonly TAB_CHAR=$'\t'
 
@@ -516,6 +519,54 @@ function is_ok() {
 }
 
 #
+# Synopsis: can_use_xz version
+#
+
+function can_use_xz() {
+  echo "Debug: \$1 for can_use_xz() is '${1}'" >&2
+
+  if [ -z "$NVH_USE_XZ" ]; then
+    echo "xz use disabled via the NVH_USE_XZ variable. Falling back to gzip."
+    return 1
+  fi
+
+  # nvh only uses xz on Linux and macOS at this time
+  if [ "$(uname -s)" != "Linux" ] && [ "$(uname -s)" != "Darwin" ]; then
+    echo "nvh supports xz only on Linux and macOS. Falling back to gzip." >&2
+    return 1
+  fi
+
+  echo "Platform is Either Linux or macOS, which is good." >&2
+
+  # Need to ensure xz works via `| tar -Jx`
+  local passed_platform_checks=""
+  if [ "$(uname -s)" = "Linux" ] && [ -n "$(command -v xz)" ]; then
+    passed_platform_checks="true"
+  elif [ "$(uname -s)" = "Darwin" ] && [ $(echo $(sw_vers -productVersion) | cut -d '.' -f 2) gt "8" ]; then
+    passed_platform_checks="true"
+  fi
+  if [ -z "$passed_platform_checks" ]; then
+    echo "nvh can't confirm that your system has xz support for extracting xz archives with tar. Falling back to gzip." >&2
+    return 1
+  fi
+
+  echo "Passed platform checks. Your system can probably extract xz with tar via stdin." >&2
+
+  local xz_url=$(NVH_USE_XZ="true" tarball_url $1)
+  local gz_url=$(NVH_USE_XZ="" tarball_url $1)
+  if is_ok "${xz_url}"; then
+    echo "Debug: xz tarball URL '${xz_url}' is okay." >&2
+    return 0
+  fi
+  if is_ok "${gz_url}"; then
+    echo "No xz tarball available for '${1}', falling back to gzip." >&2
+    return 1
+  else
+    abort "No suitable tarball found for ${1}"
+  fi
+}
+
+#
 # Synopsis: display_tarball_platform
 #
 
@@ -665,6 +716,12 @@ function install() {
   echo
   install_log "installing" "${g_mirror_folder_name}/${resolved_version}"
 
+  if can_use_xz "${resolved_version}"; then
+    NVH_USE_XZ="yes_from_install"
+  else
+    NVH_USE_XZ=""
+  fi
+
   local url="$(tarball_url "${resolved_version}")"
   is_ok "${url}" || abort "download preflight failed for '$resolved_version' (${url})"
 
@@ -676,6 +733,10 @@ function install() {
   touch "${dir}/nvh.lock"
 
   cd "${dir}" || abort "Failed to cd to directory"
+
+  echo "Debug: in install(), NVH_USE_XZ is '${NVH_USE_XZ}'" >&2
+  echo "Debug: Installing '${url}'" >&2
+  echo "Debug: tarflags are '${tarflags}'" >&2
 
   install_log "fetch" "${url}"
   do_get "${url}" | tar "${tarflags}" --strip-components=1
