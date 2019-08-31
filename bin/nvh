@@ -520,14 +520,13 @@ function is_ok() {
 #
 
 function can_use_xz() {
-  test -n "$NVH_USE_XZ" || return 1
-
   # nvh uses xz on Linux and macOS at this time, if the system supports it
   if ! ([ "$(uname -s)" = "Linux" ] && [ -n "$(command -v xz)" ]) \
   && ! ([ "$(uname -s)" = "Darwin" ] && [ $(echo $(sw_vers -productVersion) | cut -d '.' -f 2) -gt "8" ]); then
     return 1
   fi
 
+  # Check if an xz tarball exists for this version/os/arch
   local xz_url=$(NVH_USE_XZ="true" tarball_url $1)
   if ! is_ok "${xz_url}"; then
     return 1
@@ -681,11 +680,7 @@ function install() {
     fi
   fi
 
-  if can_use_xz "${resolved_version}"; then
-    NVH_USE_XZ="true"
-  else
-    NVH_USE_XZ=""
-  fi
+  test -n "${NVH_USE_XZ}" && can_use_xz "${resolved_version}" || NVH_USE_XZ=""
 
   echo
   install_log "installing" "${g_mirror_folder_name}/${resolved_version}"
