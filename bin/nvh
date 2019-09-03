@@ -536,7 +536,7 @@ function display_tarball_platform() {
   local arch="unexpected_arch"
   local uname_m="$(uname -m)"
   case "${uname_m}" in
-    x86_64) arch=x64 ;;
+    x86_64 | i86pc) arch=x64 ;;
     i386 | i686) arch="x86" ;;
     aarch64) arch=arm64 ;;
     *)
@@ -671,7 +671,10 @@ function install() {
   cd "${dir}" || abort "Failed to cd to directory"
 
   install_log "fetch" "${url}"
-  do_get "${url}" | tar -zx --strip-components=1
+  do_get "${url}" > tarball
+  tar xf tarball
+  mv "node-${resolved_version}-$(display_tarball_platform)/"* ./
+  rm -rf tarball "node-${resolved_version}-$(display_tarball_platform)"
   [[ "${GET_OPTIONS_SHOW_PROGRESS}" = "true" ]] && erase_line
   rm -f "${dir}/nvh.lock"
 
