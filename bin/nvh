@@ -542,7 +542,7 @@ function can_use_xz() {
   local passed_platform_checks=""
   if [ "$(uname -s)" = "Linux" ] && [ -n "$(command -v xz)" ]; then
     passed_platform_checks="true"
-  elif [ "$(uname -s)" = "Darwin" ] && [ $(echo $(sw_vers -productVersion) | cut -d '.' -f 2) gt "8" ]; then
+  elif [ "$(uname -s)" = "Darwin" ] && [ $(echo $(sw_vers -productVersion) | cut -d '.' -f 2) -gt "8" ]; then
     passed_platform_checks="true"
   fi
   if [ -z "$passed_platform_checks" ]; then
