@@ -4,15 +4,16 @@ load shared-functions
 
 function setup() {
   unset_nvh_env
+  setup_tmp_prefix
   # fixed directory so can reuse the two installs
-  export NVH_PREFIX="${TMPDIR}/nvh/test/run-which"
+  export NVH_PREFIX="${TMP_PREFIX_DIR}/nvh/test/run-which"
   # beforeAll
   # See https://github.com/bats-core/bats-core/issues/39
-  if [[ "${BATS_TEST_NUMBER}" -eq 1 ]] ; then
+  # if [[ "${BATS_TEST_NUMBER}" -eq 1 ]] ; then
     # Using --preserve to speed install, as only care about the cached versions.
     nvh install --preserve 4.9.1
     nvh install --preserve lts
-  fi
+  # fi
 }
 
 function teardown() {
