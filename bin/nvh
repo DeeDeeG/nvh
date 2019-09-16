@@ -529,20 +529,18 @@ function can_use_xz() {
   local tar_major_ver_num="$(echo ${tar_version_num} | cut -d '.' -f '1')"
   local tar_minor_ver_num="$(echo ${tar_version_num} | cut -d '.' -f '2')"
 
-  function bsdtar_version_is_adequate(){
-    [ "${tar_major_ver_num}" -gt "2" ] \
-    || ([ "${tar_major_ver_num}" -eq "2" ] && [ "${tar_minor_ver_num}" -ge "7" ])
+  function bsdtar_version_is_adequate() {
+    [ "${tar_major_ver_num}" -gt "2" ] || ([ "${tar_major_ver_num}" -eq "2" ] && [ "${tar_minor_ver_num}" -ge "7" ])
   }
 
-  function gnutar_version_is_adequate(){
-    [ "${tar_major_ver_num}" -gt "1" ] \
-    || ([ "${tar_major_ver_num}" -eq "1" ] && [ "${tar_minor_ver_num}" -ge "22" ])
+  function gnutar_version_is_adequate() {
+    [ "${tar_major_ver_num}" -gt "1" ] || ([ "${tar_major_ver_num}" -eq "1" ] && [ "${tar_minor_ver_num}" -ge "22" ])
   }
 
-
-  # nvh uses xz on Linux and macOS at this time, if the system supports it
-  if ! ([ -n "$(tar --version | grep -io GNU)" ] && gnutar_version_is_adequate  && [ -n "$(command -v xz)" ]) \
-  && ! ([ -n "$(tar --version | grep -io libarchive)" ] && bsdtar_version_is_adequate && [ -f "/usr/lib/liblzma.dylib" ]); then
+  # nvh uses xz with GNU tar or libarchive bsdtar at this time, if the system supports it.
+  # This is expected to include most modern installations of Linux and macOS.
+  if ! ([ -n "$(tar --version | grep -io 'GNU')" ] && gnutar_version_is_adequate  && [ -n "$(command -v xz)" ]) \
+  && ! ([ -n "$(tar --version | grep -io 'libarchive')" ] && bsdtar_version_is_adequate && [ -f "/usr/lib/liblzma.dylib" ]); then
     return 1
   fi
 
