@@ -530,21 +530,13 @@ function can_use_xz() {
   local tar_minor_ver_num="$(echo ${tar_version_num} | cut -d '.' -f '2')"
 
   function bsdtar_version_is_adequate(){
-    if [ "${tar_major_ver_num}" -gt "2" ] \
-    || ([ "${tar_major_ver_num}" -eq "2" ] && [ "${tar_minor_ver_num}" -ge "7" ]); then
-      return 0
-    else
-      return 1
-    fi
+    [ "${tar_major_ver_num}" -gt "2" ] \
+    || ([ "${tar_major_ver_num}" -eq "2" ] && [ "${tar_minor_ver_num}" -ge "7" ])
   }
 
   function gnutar_version_is_adequate(){
-    if [ "${tar_major_ver_num}" -gt "1" ] \
-    || ([ "${tar_major_ver_num}" -eq "1" ] && [ "${tar_minor_ver_num}" -ge "22" ]); then
-      return 0
-    else
-      return 1
-    fi
+    [ "${tar_major_ver_num}" -gt "1" ] \
+    || ([ "${tar_major_ver_num}" -eq "1" ] && [ "${tar_minor_ver_num}" -ge "22" ])
   }
 
 
