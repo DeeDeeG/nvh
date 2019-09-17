@@ -22,8 +22,17 @@ NVH_NODE_DOWNLOAD_MIRROR=${NVH_NODE_DOWNLOAD_MIRROR:-https://nodejs.org/download
 NVH_NODE_DOWNLOAD_MIRROR=${NVH_NODE_DOWNLOAD_MIRROR%/}
 readonly NVH_NODE_DOWNLOAD_MIRROR
 
-# Use xz compression by default for tarball downloads. (Override with preference from environment variable, if set)
-NVH_USE_XZ=${NVH_USE_XZ-true}
+# Use xz compression by default for tarball downloads (if NVH_USE_XZ is unset, set it to "true").
+[ -z "${NVH_USE_XZ+x}" ] && NVH_USE_XZ="true"
+
+# Normalize "", "0" and "false" to the empty string. Normalize other values to "true".
+case "${NVH_USE_XZ}" in
+  "" | "0" | "false")
+    NVH_USE_XZ=""
+    ;;
+  *)
+    NVH_USE_XZ="true"
+esac
 
 # NVH_PRESERVE_NPM tested with -z -n
 # made readonly after CLI option parsing
