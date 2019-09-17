@@ -539,12 +539,6 @@ function can_use_xz() {
   && ! ([ "$(uname -s)" = "Darwin" ] && [ $(echo $(sw_vers -productVersion) | cut -d '.' -f 2) -gt "8" ]); then
     return 1
   fi
-
-  # Check if an xz tarball exists for this version/os/arch
-  local xz_url=$(NVH_USE_XZ="true" tarball_url $1)
-  if ! is_ok "${xz_url}" &> /dev/null; then
-    return 1
-  fi
 }
 
 #
@@ -700,7 +694,9 @@ function install() {
   install_log "installing" "${g_mirror_folder_name}/${resolved_version}"
 
   local url="$(tarball_url "${resolved_version}")"
-  is_ok "${url}" || abort "download preflight failed for '$resolved_version' (${url})"
+  is_ok "${url}" &> /dev/null || local preflight_failed="true"
+  [ -n "${preflight_failed}" ] && [ -n "${NVH_USE_XZ}" ] && NVH_USE_XZ="" && url="$(tarball_url "${resolved_version}")" && is_ok "${url}" &> /dev/null && local preflight_failed=""
+  [ -z "${preflight_failed}" ] || abort "download preflight failed for "$resolved_version" (${url})"
 
   local tarflags="-zx"
   test -z "${NVH_USE_XZ}" || local tarflags="-Jx"
