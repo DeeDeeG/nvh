@@ -540,11 +540,12 @@ function can_use_xz() {
     return 1
   fi
 
-  # Check if an xz tarball exists for this version/os/arch
-  local xz_url=$(NVH_USE_XZ="true" tarball_url $1)
-  if ! is_ok "${xz_url}" &> /dev/null; then
-    return 1
-  fi
+  # xz tarballs are available for both Linux and macOS past version 3
+  local version="${1#v}"
+  local major_version
+  major_version="$(echo $version | cut -d '.' -f '1')"
+
+  [ "${major_version}" -gt "2" ] || return 1
 }
 
 #
