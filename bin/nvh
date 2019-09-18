@@ -25,10 +25,10 @@ readonly NVH_NODE_DOWNLOAD_MIRROR
 # Use xz compression by default for tarball downloads (if NVH_USE_XZ is unset, set it to "true").
 [ -z "${NVH_USE_XZ+x}" ] && NVH_USE_XZ="true"
 
-# Normalize "", "0" and "false" to the empty string. Normalize other values to "true".
+# Normalize "", "0" and "false" to "false". Normalize other values to "true".
 case "${NVH_USE_XZ}" in
   "" | "0" | "false")
-    NVH_USE_XZ=""
+    NVH_USE_XZ="false"
     ;;
   *)
     NVH_USE_XZ="true"
@@ -596,7 +596,7 @@ function tarball_url() {
   local version="$1"
 
   local ext="gz"
-  test -z "$NVH_USE_XZ" || local ext="xz"
+  test "$NVH_USE_XZ" = "false" || local ext="xz"
 
   echo "${g_mirror_url}/${version}/node-${version}-$(display_tarball_platform).tar.${ext}"
 }
@@ -688,18 +688,18 @@ function install() {
     fi
   fi
 
-  test -n "${NVH_USE_XZ}" && can_use_xz "${resolved_version}" || NVH_USE_XZ=""
+  test "${NVH_USE_XZ}" = "true" && can_use_xz "${resolved_version}" || NVH_USE_XZ="false"
 
   echo
   install_log "installing" "${g_mirror_folder_name}/${resolved_version}"
 
   local url="$(tarball_url "${resolved_version}")"
   is_ok "${url}" &> /dev/null || local preflight_failed="true"
-  [ -n "${preflight_failed}" ] && [ -n "${NVH_USE_XZ}" ] && NVH_USE_XZ="" && url="$(tarball_url "${resolved_version}")" && is_ok "${url}" &> /dev/null && local preflight_failed=""
+  [ -n "${preflight_failed}" ] && [ "${NVH_USE_XZ}" = "true" ] && NVH_USE_XZ="false" && url="$(tarball_url "${resolved_version}")" && is_ok "${url}" &> /dev/null && local preflight_failed=""
   [ -z "${preflight_failed}" ] || abort "download preflight failed for "$resolved_version" (${url})"
 
   local tarflags="-zx"
-  test -z "${NVH_USE_XZ}" || local tarflags="-Jx"
+  test "${NVH_USE_XZ}" = "false" || local tarflags="-Jx"
 
   install_log "mkdir" "${dir}"
   mkdir -p "${dir}" || abort "sudo required (or change ownership, or define NVH_PREFIX)"
@@ -1190,7 +1190,7 @@ function main() {
       -p|--preserve) NVH_PRESERVE_NPM="true" ;;
       --no-preserve) NVH_PRESERVE_NPM="" ;;
       --use-xz) NVH_USE_XZ="true" ;;
-      --no-use-xz) NVH_USE_XZ="" ;;
+      --no-use-xz) NVH_USE_XZ="false" ;;
       -V|--version) echo "${VERSION}"; exit ;;
       -*) abort "unrecognised option '$1'"; exit 1 ;;
       exec) unprocessed_args=("$@"); break ;;
