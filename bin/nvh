@@ -26,15 +26,13 @@ readonly NVH_NODE_DOWNLOAD_MIRROR
 # User may set NVH_USE_XZ to 0 to disable, or set to anything else to force-enable.
 # May be overridden by command line flags.
 
-g_xz_force_enabled="false"
+# Normalise external values to true/false
 if [[ "${NVH_USE_XZ}" = "0" ]]; then
   NVH_USE_XZ="false"
 elif [[ -n "${NVH_USE_XZ+defined}" ]]; then
   NVH_USE_XZ="true"
-  g_xz_force_enabled="true"
-else
-  NVH_USE_XZ="true"
 fi
+# Not setting to readonly. Overriden by CLI flags, and update_xz_settings_for_version.
 
 # NVH_PRESERVE_NPM tested with -z -n
 # made readonly after CLI option parsing
@@ -156,6 +154,23 @@ function update_mirror_settings_for_version() {
     local remote_folder="${BASH_REMATCH[1]}"
     g_mirror_folder_name="${remote_folder}"
     g_mirror_url="${NVH_NODE_DOWNLOAD_MIRROR}/${g_mirror_folder_name}"
+  fi
+}
+
+#
+# Synopsis: update_xz_settings_for_version version
+# Globals modified:
+# - NVH_USE_XZ
+#
+
+function update_xz_settings_for_version() {
+  # tarballs in xz format were available in later version of iojs, but KISS and only use xz from v4.
+  if [[ "${NVH_USE_XZ}" = "true" ]]; then
+    local resolved_major_version
+    resolved_major_version="$(echo "${1#v}" | cut -d '.' -f '1')"
+    if [[ "${resolved_major_version}" -lt 4 ]]; then
+      NVH_USE_XZ="false"
+    fi
   fi
 }
 
@@ -534,14 +549,18 @@ function is_ok() {
 
 #
 # Synopsis: can_use_xz
+# Test system to see if xz decompression is supported by tar.
 #
 
 function can_use_xz() {
-  # nvh uses xz on Linux and macOS at this time, if the system supports it
-  if ! ([[ "$(uname -s)" = "Linux" ]] && command -v xz &> /dev/null) \
-  && ! ([[ "$(uname -s)" = "Darwin" ]] && [[ "$(sw_vers -productVersion | cut -d '.' -f 2)" -gt "8" ]]); then
-    return 1
+  # Be conservative and only enable if confident xz is likely to work. Unfortunately we can't query tar itself.
+  local uname_s="$(uname -s)"
+  if [[ "${uname_s}" = "Linux" ]] && command -v xz &> /dev/null ; then
+    return 0
+  elif [[ "${uname_s}" = "Darwin" && "$(sw_vers -productVersion | cut -d '.' -f 2)" -gt "8" ]]; then
+    return 0
   fi
+  return 1 # not supported
 }
 
 #
@@ -681,6 +700,7 @@ function install() {
   resolved_version="$(display_latest_resolved_version "$1")" || return 2
   [[ -n "${resolved_version}" ]] || abort "no version found for '$1'"
   update_mirror_settings_for_version "$1"
+  update_xz_settings_for_version "${resolved_version}"
 
   local dir="${CACHE_DIR}/${g_mirror_folder_name}/${resolved_version}"
 
@@ -691,20 +711,8 @@ function install() {
     fi
   fi
 
-  if [[ "${NVH_USE_XZ}" = true ]] && [[ "S{g_xz_force_enabled}" = "false" ]]; then
-    can_use_xz || NVH_USE_XZ="false"
-  fi
-
   echo
   install_log "installing" "${g_mirror_folder_name}/${resolved_version}"
-
-  if [[ "${NVH_USE_XZ}" = "true" ]] && [[ "${g_xz_force_enabled}" = "false" ]]; then
-    local resolved_major_version
-    resolved_major_version="$(echo ${resolved_version#v} | cut -d '.' -f '1')"
-    if [[ "${resolved_major_version}" -lt 4 ]]; then
-      NVH_USE_XZ="false"
-    fi
-  fi
 
   local url="$(tarball_url "${resolved_version}")"
   is_ok "${url}" || abort "download preflight failed for '$resolved_version' (${url})"
@@ -1200,8 +1208,7 @@ function main() {
       --insecure) set_insecure ;;
       -p|--preserve) NVH_PRESERVE_NPM="true" ;;
       --no-preserve) NVH_PRESERVE_NPM="" ;;
-      --use-xz) NVH_USE_XZ="true"; g_xz_force_enabled="false" ;;
-      --force-use-xz) NVH_USE_XZ="true"; g_xz_force_enabled="true" ;;
+      --use-xz) NVH_USE_XZ="true" ;;
       --no-use-xz) NVH_USE_XZ="false" ;;
       -V|--version) echo "${VERSION}"; exit ;;
       -*) abort "unrecognised option '$1'"; exit 1 ;;
@@ -1218,6 +1225,11 @@ function main() {
   readonly WGET_OPTIONS
   readonly GET_OPTIONS_SHOW_PROGRESS
   # Note: NVH_MAX_REMOTE_MATCHES not readonly, used as env in display_latest_resolved_version
+
+  if [[ -z "${NVH_USE_XZ+defined}" ]]; then
+    NVH_USE_XZ="true" # Default to using nvh
+    can_use_xz || NVH_USE_XZ="false"
+  fi
 
   set -- "${unprocessed_args[@]}"
 
